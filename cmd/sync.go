@@ -105,14 +105,14 @@ var syncCmd = &cobra.Command{
 				// Handle clone
 				session := sh.NewSession()
 				session.SetDir(tmpDir)
-				session.Command("git", "config", "user.email", "cdkbot@juju.solutions")
-				session.Command("git", "config", "user.name", "cdkbot")
-				session.Command("git", "config", "--global", "push.default", "simple")
-				session.Command("git", "remote", "add", "upstream", r.Upstream)
-				session.Command("git", "fetch", "upstream")
-				session.Command("git", "checkout", "master")
-				session.Command("git", "merge", "upstream/master")
-				session.Command("git", "push", "origin")
+				session.Command("git", "config", "user.email", "cdkbot@juju.solutions").Run()
+				session.Command("git", "config", "user.name", "cdkbot").Run()
+				session.Command("git", "config", "--global", "push.default", "simple").Run()
+				session.Command("git", "remote", "add", "upstream", r.Upstream).Run()
+				session.Command("git", "fetch", "upstream").Run()
+				session.Command("git", "checkout", "master").Run()
+				session.Command("git", "merge", "upstream/master").Run()
+				session.Command("git", "push", "origin").Run()
 			}
 		}
 	},
