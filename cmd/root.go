@@ -27,7 +27,7 @@ import (
 	"os"
 
 	homedir "github.com/mitchellh/go-homedir"
-	jww "github.com/spf13/jwalterweatherman"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -93,10 +93,12 @@ func initConfig() {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
 
+	// Maybe move this under verbose at some point
+	log.SetLevel(log.InfoLevel)
+	log.SetOutput(os.Stdout)
 	verbose, _ := rootCmd.PersistentFlags().GetBool("verbose")
 	if verbose {
-		jww.SetLogThreshold(jww.LevelTrace)
-		jww.SetStdoutThreshold(jww.LevelInfo)
+		log.SetLevel(log.TraceLevel)
 	}
 
 }

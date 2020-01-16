@@ -26,16 +26,17 @@ import (
 	"fmt"
 	"github.com/codeskyblue/go-sh"
 	"github.com/spf13/cobra"
-	jww "github.com/spf13/jwalterweatherman"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+	log "github.com/sirupsen/logrus"
 )
 
 var spec []string
+var dryrun bool
 
 type RepoSpec struct {
 	Repos []struct {
@@ -54,12 +55,12 @@ func (c *RepoSpec) parse(specFile string) *RepoSpec {
 	filename, _ := filepath.Abs(specFile)
 	yamlFile, err := ioutil.ReadFile(filename)
 	if err != nil {
-		jww.ERROR.Printf("Failed to read %s %v", filename, err)
+		log.Fatal("Failed to read %s %v", filename, err)
 		os.Exit(1)
 	}
 	err = yaml.Unmarshal(yamlFile, c)
 	if err != nil {
-		jww.ERROR.Printf("Failed to unmarshal: %v", err)
+		log.Fatal("Failed to unmarshal: %v", err)
 		os.Exit(1)
 	}
 	return c
@@ -71,7 +72,7 @@ var syncCmd = &cobra.Command{
 	Short: "Sync upstream repos",
 	Long:  `Syncs upstream git repos with `,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Syncing upstream <-> downstream repositories")
+		log.Error("Syncing upstream <-> downstream repositories")
 
 		var c RepoSpec
 		ghUser := url.QueryEscape(os.Getenv("CDKBOT_GH_USR"))
@@ -81,38 +82,40 @@ var syncCmd = &cobra.Command{
 			for _, r := range output.Repos {
 				tmpDir, err := ioutil.TempDir("", "reposync")
 				if err != nil {
-					jww.ERROR.Printf("Failed to create tempdir: %v", err)
+					log.WithFields(log.Fields{"error": err}).Fatal("Failed to create tempdir")
 					os.Exit(1)
 				}
 				defer os.RemoveAll(tmpDir)
-				fmt.Println("- storing repos in ", tmpDir)
-
-				fmt.Printf("Processing: %s\n", r.Name)
+				log.WithFields(log.Fields{"upstream": r.Upstream, "charm/layer": r.Name, "dir": tmpDir}).Info("Processing repo")
 				uPath, err := url.Parse(r.Upstream)
 				if err != nil {
-					jww.ERROR.Printf("[Skipping] Problem reading url: %v", err)
+					log.WithFields(log.Fields{"error": err}).Fatal("Skipping, problem reading url")
 					continue
 				}
 				uPathStrip := strings.TrimRight(uPath.EscapedPath(), ".git")
 				uPathStrip = strings.TrimLeft(uPathStrip, "/")
 				if r.Downstream == uPathStrip {
-					fmt.Printf("[Skipping] %s == %s\n", r.Downstream, uPathStrip)
+					log.WithFields(log.Fields{"downstream": r.Downstream, "upstream": uPathStrip}).Warn("Upstream and downstream are the same, skipping this repository.")
 					continue
 				}
 				cloneUrl := fmt.Sprintf("https://%s:%s@github.com/%s", ghUser, ghPass, r.Downstream)
-				sh.Command("git", "clone", cloneUrl, tmpDir).Run()
+				if !dryrun {
+					sh.Command("git", "clone", cloneUrl, tmpDir).Run()
 
-				// Handle clone
-				session := sh.NewSession()
-				session.SetDir(tmpDir)
-				session.Command("git", "config", "user.email", "cdkbot@juju.solutions").Run()
-				session.Command("git", "config", "user.name", "cdkbot").Run()
-				session.Command("git", "config", "--global", "push.default", "simple").Run()
-				session.Command("git", "remote", "add", "upstream", r.Upstream).Run()
-				session.Command("git", "fetch", "upstream").Run()
-				session.Command("git", "checkout", "master").Run()
-				session.Command("git", "merge", "upstream/master").Run()
-				session.Command("git", "push", "origin").Run()
+					// Handle clone
+					session := sh.NewSession()
+					session.ShowCMD = true
+					session.SetDir(tmpDir)
+					session.Command("git", "config", "user.email", "cdkbot@juju.solutions").Run()
+					session.Command("git", "config", "user.name", "cdkbot").Run()
+					session.Command("git", "config", "--global", "push.default", "simple").Run()
+					session.Command("git", "remote", "add", "upstream", r.Upstream).Run()
+					session.Command("git", "fetch", "upstream").Run()
+					session.Command("git", "checkout", "master").Run()
+					session.Command("git", "merge", "upstream/master").Run()
+					session.Command("git", "push", "origin").Run()
+				}
+
 			}
 		}
 	},
@@ -122,4 +125,5 @@ func init() {
 	repoCmd.AddCommand(syncCmd)
 
 	syncCmd.Flags().StringSliceVar(&spec, "spec", []string{}, "Path to YAML specs containing the upstream/downstream locations of the git repos")
+	syncCmd.Flags().BoolVar(&dryrun, "dry-run", false, "dry-run")
 }
