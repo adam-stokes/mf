@@ -19,23 +19,33 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
+
 package cmd
 
 import (
-	"fmt"
+
+	// "github.com/codeskyblue/go-sh"
+
 	"github.com/spf13/cobra"
+	jww "github.com/spf13/jwalterweatherman"
 )
 
-// repoCmd represents the repo command
-var repoCmd = &cobra.Command{
-	Use:   "repo",
-	Short: "Upstream repo management",
-	Long:  `Manage upstream git repos, mainly keeping forks updated and code synced.`,
+var spec []string
+
+// syncCmd represents the sync command
+var syncCmd = &cobra.Command{
+	Use:   "sync",
+	Short: "Sync upstream repos",
+	Long:  `Syncs upstream git repos with `,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("repo called")
+		for _, v := range spec {
+			jww.INFO.Printf("Cloning %s", v)
+		}
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(repoCmd)
+	repoCmd.AddCommand(syncCmd)
+
+	syncCmd.Flags().StringSliceVar(&spec, "spec", []string{}, "Path to YAML specs containing the upstream/downstream locations of the git repos")
 }
