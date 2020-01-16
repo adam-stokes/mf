@@ -72,7 +72,7 @@ var syncCmd = &cobra.Command{
 	Short: "Sync upstream repos",
 	Long:  `Syncs upstream git repos with `,
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Error("Syncing upstream <-> downstream repositories")
+		log.Info("Syncing upstream <-> downstream repositories")
 
 		var c RepoSpec
 		ghUser := url.QueryEscape(os.Getenv("CDKBOT_GH_USR"))
