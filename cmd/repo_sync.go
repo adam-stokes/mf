@@ -25,47 +25,20 @@ package cmd
 import (
 	"fmt"
 	"github.com/battlemidget/mf/git"
+	"github.com/battlemidget/mf/common"
 	"github.com/codeskyblue/go-sh"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
 var spec []string
 var dryrun bool
 
-type RepoSpec struct {
-	Repos []struct {
-		Name            string   `yaml:"name"`
-		Downstream      string   `yaml:"downstream"`
-		Upstream        string   `yaml:"upstream"`
-		Tags            []string `yaml:"tags,omitempty"`
-		NeedsStable     string   `yaml:"needs_stable,omitempty"`
-		NeedsTagging    string   `yaml:"needs_tagging,omitempty"`
-		ResourceBuildSh string   `yaml:"resource_build_sh,omitempty"`
-		Namespace       string   `yaml:"namespace,omitempty"`
-	} `yaml:"repos"`
-}
 
-func (c *RepoSpec) parse(specFile string) *RepoSpec {
-	filename, _ := filepath.Abs(specFile)
-	yamlFile, err := ioutil.ReadFile(filename)
-	if err != nil {
-		log.Fatal("Failed to read %s %v", filename, err)
-		os.Exit(1)
-	}
-	err = yaml.Unmarshal(yamlFile, c)
-	if err != nil {
-		log.Fatal("Failed to unmarshal: %v", err)
-		os.Exit(1)
-	}
-	return c
-}
 
 func Contains(a []string, x string) bool {
 	for _, n := range a {
@@ -84,11 +57,11 @@ var syncCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Info("Syncing upstream <-> downstream repositories")
 
-		var c RepoSpec
+		var c common.RepoSpec
 		ghUser := url.QueryEscape(os.Getenv("CDKBOT_GH_USR"))
 		ghPass := url.QueryEscape(os.Getenv("CDKBOT_GH_PSW"))
 		for _, v := range spec {
-			output := c.parse(v)
+			output := c.Parse(v)
 			for _, r := range output.Repos {
 				isK8s := Contains(r.Tags, "k8s")
 				if !isK8s {
@@ -116,7 +89,7 @@ var syncCmd = &cobra.Command{
 				if !dryrun {
 					session := sh.NewSession()
 					session.SetDir(tmpDir)
-					err = git.CloneRepo(session, cloneUrl, tmpDir, r.Upstream)
+					err = git.CloneRepo(session, cloneUrl, tmpDir, &r)
 					if err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("Failed to clone repo")
 					}
