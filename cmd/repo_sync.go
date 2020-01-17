@@ -67,6 +67,15 @@ func (c *RepoSpec) parse(specFile string) *RepoSpec {
 	return c
 }
 
+func Contains(a []string, x string) bool {
+	for _, n := range a {
+		if x == n {
+			return true
+		}
+	}
+	return false
+}
+
 // syncCmd represents the sync command
 var syncCmd = &cobra.Command{
 	Use:   "sync",
@@ -81,6 +90,10 @@ var syncCmd = &cobra.Command{
 		for _, v := range spec {
 			output := c.parse(v)
 			for _, r := range output.Repos {
+				isK8s := Contains(r.Tags, "k8s")
+				if !isK8s {
+					continue
+				}
 				tmpDir, err := ioutil.TempDir("", "reposync")
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Fatal("Failed to create tempdir")
