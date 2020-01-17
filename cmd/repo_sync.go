@@ -25,6 +25,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/codeskyblue/go-sh"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -32,7 +33,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	log "github.com/sirupsen/logrus"
 )
 
 var spec []string
@@ -100,20 +100,27 @@ var syncCmd = &cobra.Command{
 				}
 				cloneUrl := fmt.Sprintf("https://%s:%s@github.com/%s", ghUser, ghPass, r.Downstream)
 				if !dryrun {
-					sh.Command("git", "clone", cloneUrl, tmpDir).Run()
-
 					// Handle clone
+					output, err := sh.Command("git", "clone", cloneUrl, tmpDir).CombinedOutput()
+					if err != nil {
+						log.WithFields(log.Fields{"error": err, "output": string(output)}).Fatal("Could not clone directory.")
+						os.Exit(1)
+					}
+
 					session := sh.NewSession()
-					session.ShowCMD = true
 					session.SetDir(tmpDir)
 					session.Command("git", "config", "user.email", "cdkbot@juju.solutions").Run()
 					session.Command("git", "config", "user.name", "cdkbot").Run()
 					session.Command("git", "config", "--global", "push.default", "simple").Run()
-					session.Command("git", "remote", "add", "upstream", r.Upstream).Run()
-					session.Command("git", "fetch", "upstream").Run()
-					session.Command("git", "checkout", "master").Run()
-					session.Command("git", "merge", "upstream/master").Run()
-					session.Command("git", "push", "origin").Run()
+					session.Command("git", "remote", "add", "upstream", strings.TrimRight(r.Upstream, "/")).Run()
+					session.Command("git", "fetch", "upstream", "-q").Run()
+					session.Command("git", "checkout", "master", "-q").Run()
+					session.Command("git", "merge", "upstream/master", "-q").Run()
+					output, err = session.Command("git", "push", "origin").CombinedOutput()
+					if err != nil {
+						log.WithFields(log.Fields{"error": err, "downstream": r.Downstream, "output": string(output)}).Fatal("Unable to push to downstream remote")
+						os.Exit(1)
+					}
 				}
 
 			}

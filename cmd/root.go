@@ -94,6 +94,7 @@ func initConfig() {
 	}
 
 	// Maybe move this under verbose at some point
+	log.SetFormatter(&log.TextFormatter{DisableColors: false, FullTimestamp: false})
 	log.SetLevel(log.InfoLevel)
 	log.SetOutput(os.Stdout)
 	verbose, _ := rootCmd.PersistentFlags().GetBool("verbose")

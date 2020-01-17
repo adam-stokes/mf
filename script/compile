@@ -1,0 +1,6 @@
+#!/bin/bash
+
+mkdir -p dist || true
+gox -osarch="linux/amd64"
+mv mf_* dist/.
+tar -cvjf dist/mf_linux_amd64.tar.gz dist/mf_linux_amd64
