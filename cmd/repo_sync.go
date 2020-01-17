@@ -24,6 +24,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/battlemidget/mf/git"
 	"github.com/codeskyblue/go-sh"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -100,26 +101,11 @@ var syncCmd = &cobra.Command{
 				}
 				cloneUrl := fmt.Sprintf("https://%s:%s@github.com/%s", ghUser, ghPass, r.Downstream)
 				if !dryrun {
-					// Handle clone
-					output, err := sh.Command("git", "clone", cloneUrl, tmpDir).CombinedOutput()
-					if err != nil {
-						log.WithFields(log.Fields{"error": err, "output": string(output)}).Fatal("Could not clone directory.")
-						os.Exit(1)
-					}
-
 					session := sh.NewSession()
 					session.SetDir(tmpDir)
-					session.Command("git", "config", "user.email", "cdkbot@juju.solutions").Run()
-					session.Command("git", "config", "user.name", "cdkbot").Run()
-					session.Command("git", "config", "--global", "push.default", "simple").Run()
-					session.Command("git", "remote", "add", "upstream", strings.TrimRight(r.Upstream, "/")).Run()
-					session.Command("git", "fetch", "upstream", "-q").Run()
-					session.Command("git", "checkout", "master", "-q").Run()
-					session.Command("git", "merge", "upstream/master", "-q").Run()
-					output, err = session.Command("git", "push", "origin").CombinedOutput()
+					err = git.CloneRepo(session, cloneUrl, tmpDir, r.Upstream)
 					if err != nil {
-						log.WithFields(log.Fields{"error": err, "downstream": r.Downstream, "output": string(output)}).Fatal("Unable to push to downstream remote")
-						os.Exit(1)
+						log.WithFields(log.Fields{"error": err}).Error("Failed to clone repo")
 					}
 				}
 
