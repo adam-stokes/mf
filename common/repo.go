@@ -8,21 +8,19 @@ import (
 	"path/filepath"
 )
 
-
 type RepoSpec struct {
 	Repos []Repo `yaml:"repos"`
 }
 
 type Repo struct {
 	Name            string   `yaml:"name"`
-		Downstream      string   `yaml:"downstream"`
-		Upstream        string   `yaml:"upstream"`
-		Tags            []string `yaml:"tags,omitempty"`
-		NeedsStable     string   `yaml:"needs_stable,omitempty"`
-		NeedsTagging    string   `yaml:"needs_tagging,omitempty"`
-		ResourceBuildSh string   `yaml:"resource_build_sh,omitempty"`
-		Namespace       string   `yaml:"namespace,omitempty"`
-
+	Downstream      string   `yaml:"downstream"`
+	Upstream        string   `yaml:"upstream"`
+	Tags            []string `yaml:"tags,omitempty"`
+	NeedsStable     string   `yaml:"needs_stable,omitempty"`
+	NeedsTagging    string   `yaml:"needs_tagging,omitempty"`
+	ResourceBuildSh string   `yaml:"resource_build_sh,omitempty"`
+	Namespace       string   `yaml:"namespace,omitempty"`
 }
 
 func (c *RepoSpec) Parse(specFile string) *RepoSpec {

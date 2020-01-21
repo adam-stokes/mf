@@ -24,8 +24,8 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/battlemidget/mf/git"
 	"github.com/battlemidget/mf/common"
+	"github.com/battlemidget/mf/git"
 	"github.com/codeskyblue/go-sh"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -37,17 +37,6 @@ import (
 
 var spec []string
 var dryrun bool
-
-
-
-func Contains(a []string, x string) bool {
-	for _, n := range a {
-		if x == n {
-			return true
-		}
-	}
-	return false
-}
 
 // syncCmd represents the sync command
 var syncCmd = &cobra.Command{
@@ -63,7 +52,7 @@ var syncCmd = &cobra.Command{
 		for _, v := range spec {
 			output := c.Parse(v)
 			for _, r := range output.Repos {
-				isK8s := Contains(r.Tags, "k8s")
+				isK8s := common.Contains(r.Tags, "k8s")
 				if !isK8s {
 					continue
 				}
@@ -89,7 +78,7 @@ var syncCmd = &cobra.Command{
 				if !dryrun {
 					session := sh.NewSession()
 					session.SetDir(tmpDir)
-					err = git.CloneRepo(session, cloneUrl, tmpDir, &r)
+					err = git.SyncRepoNamespace(session, cloneUrl, tmpDir, &r)
 					if err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("Failed to clone repo")
 					}
