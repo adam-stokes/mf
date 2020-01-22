@@ -41,8 +41,21 @@ var dryrun bool
 // syncCmd represents the sync command
 var syncCmd = &cobra.Command{
 	Use:   "sync",
-	Short: "Sync upstream repos",
-	Long:  `Syncs upstream git repos with `,
+	Short: "Repo Sync - syncs upstream repos",
+	Long:  `Syncs upstream git repos with charmed-kubernetes namespace.
+
+EXAMPLE
+
+    $ mf repo sync --spec path/to/charm-matrix-spec.yml
+
+REQUIREMENTS
+
+- Environment
+
+The following environment variables are required:
+
+CDKBOT_GH_USR - Github username
+CDKBOT_GH_PSW - Github password`,
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Info("Syncing upstream <-> downstream repositories")
 
