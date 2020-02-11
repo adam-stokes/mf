@@ -12,7 +12,7 @@ import (
 
 // Sets basic directory level git config settings
 func SetGitConfig(session *sh.Session) {
-	session.Command("git", "config", "user.email", "cdkbot@juju.solutions").Run()
+	session.Command("git", "config", "user.email", "cdkbot@gmail.com").Run()
 	session.Command("git", "config", "user.name", "cdkbot").Run()
 	session.Command("git", "config", "--global", "push.default", "simple").Run()
 }
