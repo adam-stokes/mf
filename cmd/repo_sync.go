@@ -34,6 +34,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"runtime"
 )
 
 var spec []string
@@ -60,7 +61,7 @@ CDKBOT_GH_PSW - Github password`,
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Info("Syncing upstream <-> downstream repositories")
 
-		limit := limiter.NewConcurrencyLimiter(10)
+		limit := limiter.NewConcurrencyLimiter(runtime.GOMAXPROCS(0))
 		var c common.RepoSpec
 		ghUser := url.QueryEscape(os.Getenv("CDKBOT_GH_USR"))
 		ghPass := url.QueryEscape(os.Getenv("CDKBOT_GH_PSW"))
@@ -99,8 +100,8 @@ CDKBOT_GH_PSW - Github password`,
 				})
 
 			}
-		}
 		limit.Wait()
+		}
 	},
 }
 
