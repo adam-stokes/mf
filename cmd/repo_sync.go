@@ -88,15 +88,12 @@ CDKBOT_GH_PSW - Github password`,
 						return
 					}
 					cloneUrl := fmt.Sprintf("https://%s:%s@github.com/%s", ghUser, ghPass, r.Downstream)
-					if !dryrun {
-						session := sh.NewSession()
-						session.SetDir(tmpDir)
-						err = git.SyncRepoNamespace(session, cloneUrl, tmpDir, &r)
-						if err != nil {
-							log.WithFields(log.Fields{"error": err}).Error("Failed to clone repo")
-						}
+					session := sh.NewSession()
+					session.SetDir(tmpDir)
+					err = git.SyncRepoNamespace(session, cloneUrl, tmpDir, &r, dryrun)
+					if err != nil {
+						log.WithFields(log.Fields{"error": err}).Error("Failed to clone repo")
 					}
-
 				})
 
 			}

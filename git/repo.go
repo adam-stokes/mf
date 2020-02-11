@@ -48,16 +48,18 @@ func AddRemote(session *sh.Session, refName string, upstream string) {
 }
 
 // Syncs the upstream repos to our namespace in github
-func SyncRepoNamespace(session *sh.Session, cloneUrl string, tmpDir string, repo *common.Repo) error {
+func SyncRepoNamespace(session *sh.Session, cloneUrl string, tmpDir string, repo *common.Repo, dryRun bool) error {
 	CloneRepo(cloneUrl, tmpDir)
 	SetGitConfig(session)
 	AddRemote(session, "upstream", repo.Upstream)
 	Checkout(session, "master")
 	Merge(session, "upstream/master")
 
-	err := Push(session, "origin")
-	if err != nil {
-		return errors.New(fmt.Sprintf("Failed to push: %v", err))
+	if !dryRun {
+		err := Push(session, "origin")
+		if err != nil {
+			return errors.New(fmt.Sprintf("Failed to push: %v", err))
+		}
 	}
 	return nil
 }
