@@ -1,39 +1,12 @@
-/*
-Copyright © 2020 Adam Stokes <adam.stokes@gmail.com>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-*/
-
 package cmd
 
 import (
-	"fmt"
 	"github.com/battlemidget/mf/common"
 	"github.com/battlemidget/mf/git"
-	// "github.com/codeskyblue/go-sh"
-	// "github.com/korovkin/limiter"
+	"github.com/korovkin/limiter"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"net/url"
-	"os"
-	"strings"
-	// "runtime"
+	"runtime"
 )
 
 var spec []string
@@ -61,30 +34,19 @@ CDKBOT_GH_PSW - Github password`,
 		log.Info("Syncing upstream <-> downstream repositories")
 
 		var c common.RepoSpec
-		ghUser := url.QueryEscape(os.Getenv("CDKBOT_GH_USR"))
-		ghPass := url.QueryEscape(os.Getenv("CDKBOT_GH_PSW"))
+		limit := limiter.NewConcurrencyLimiter(runtime.GOMAXPROCS(0))
 		for _, v := range spec {
 			output := c.Parse(v)
 			for _, r := range output.Repos {
-				uPath, err := url.Parse(r.Upstream)
-				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Fatal("Skipping, problem reading url")
-					return
-				}
-				uPathStrip := strings.TrimRight(uPath.EscapedPath(), ".git")
-				uPathStrip = strings.TrimLeft(uPathStrip, "/")
-				if r.Downstream == uPathStrip {
-					log.WithFields(log.Fields{"downstream": r.Downstream, "upstream": uPathStrip}).Warn("Upstream and downstream are the same, skipping this repository.")
-					return
-				}
-				cloneUrl := fmt.Sprintf("https://%s:%s@github.com/%s", ghUser, ghPass, r.Downstream)
-				err = git.SyncRepoNamespace(cloneUrl, &r, dryrun)
-				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("Failed to clone repo")
-				}
+				limit.Execute(func() {
+					err := git.SyncRepoNamespace(&r, dryrun)
+					if err != nil {
+						log.WithFields(log.Fields{"error": err}).Error("Failed to clone repo")
+					}
+				})
 			}
-
 		}
+		limit.Wait()
 	},
 }
 
