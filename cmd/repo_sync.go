@@ -34,19 +34,20 @@ CDKBOT_GH_PSW - Github password`,
 		log.Info("Syncing upstream <-> downstream repositories")
 
 		var c common.RepoSpec
-		limit := limiter.NewConcurrencyLimiter(runtime.GOMAXPROCS(0))
 		for _, v := range spec {
 			output := c.Parse(v)
+			limit := limiter.NewConcurrencyLimiter(runtime.GOMAXPROCS(0))
 			for _, r := range output.Repos {
+				repo := r // NOTE: Need for some reason as `r` was not being properly passed to limiter
 				limit.Execute(func() {
-					err := git.SyncRepoNamespace(&r, dryrun)
+					err := git.SyncRepoNamespace(&repo, dryrun)
 					if err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("Failed to clone repo")
 					}
 				})
 			}
+			limit.Wait()
 		}
-		limit.Wait()
 	},
 }
 
