@@ -63,9 +63,9 @@ func (c *GitRepo) Merge(remoteBranch string) error {
 }
 
 func (c *GitRepo) Push(refName string) error {
-	_, err := c.session.Command("git", "push", refName).CombinedOutput()
+	output, err := c.session.Command("git", "push", refName).CombinedOutput()
 	if err != nil {
-		return errors.New(fmt.Sprintf("Unable to push to downstream, %v", err))
+		return errors.New(fmt.Sprintf("Unable to push to downstream, %v: %s", err, output))
 	}
 	return nil
 }
