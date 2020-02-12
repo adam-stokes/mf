@@ -113,7 +113,8 @@ func SyncRepoNamespace(repo *common.Repo, dryRun bool) error {
 	if !dryRun {
 		err := c.Push("origin")
 		if err != nil {
-			return errors.New(fmt.Sprintf("Failed to push: %v", err))
+			log.WithFields(log.Fields{"error": err}).Fatal("Failed to push to repo")
+			return nil
 		}
 	}
 	return nil

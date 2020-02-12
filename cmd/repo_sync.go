@@ -42,7 +42,7 @@ CDKBOT_GH_PSW - Github password`,
 				limit.Execute(func() {
 					err := git.SyncRepoNamespace(&repo, dryrun)
 					if err != nil {
-						log.WithFields(log.Fields{"error": err}).Error("Failed to clone repo")
+						log.WithFields(log.Fields{"error": err}).Error("Failed to sync repo")
 					}
 				})
 			}
