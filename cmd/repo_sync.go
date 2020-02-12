@@ -26,15 +26,14 @@ import (
 	"fmt"
 	"github.com/battlemidget/mf/common"
 	"github.com/battlemidget/mf/git"
-	"github.com/codeskyblue/go-sh"
-	"github.com/korovkin/limiter"
+	// "github.com/codeskyblue/go-sh"
+	// "github.com/korovkin/limiter"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"strings"
-	"runtime"
+	// "runtime"
 )
 
 var spec []string
@@ -61,43 +60,30 @@ CDKBOT_GH_PSW - Github password`,
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Info("Syncing upstream <-> downstream repositories")
 
-		limit := limiter.NewConcurrencyLimiter(runtime.GOMAXPROCS(0))
 		var c common.RepoSpec
 		ghUser := url.QueryEscape(os.Getenv("CDKBOT_GH_USR"))
 		ghPass := url.QueryEscape(os.Getenv("CDKBOT_GH_PSW"))
 		for _, v := range spec {
 			output := c.Parse(v)
 			for _, r := range output.Repos {
-				limit.Execute(func() {
-					tmpDir, err := ioutil.TempDir("", "reposync")
-					if err != nil {
-						log.WithFields(log.Fields{"error": err}).Fatal("Failed to create tempdir")
-						os.Exit(1)
-					}
-					defer os.RemoveAll(tmpDir)
-					log.WithFields(log.Fields{"upstream": r.Upstream, "charm/layer": r.Name, "dir": tmpDir}).Info("Processing repo")
-					uPath, err := url.Parse(r.Upstream)
-					if err != nil {
-						log.WithFields(log.Fields{"error": err}).Fatal("Skipping, problem reading url")
-						return
-					}
-					uPathStrip := strings.TrimRight(uPath.EscapedPath(), ".git")
-					uPathStrip = strings.TrimLeft(uPathStrip, "/")
-					if r.Downstream == uPathStrip {
-						log.WithFields(log.Fields{"downstream": r.Downstream, "upstream": uPathStrip}).Warn("Upstream and downstream are the same, skipping this repository.")
-						return
-					}
-					cloneUrl := fmt.Sprintf("https://%s:%s@github.com/%s", ghUser, ghPass, r.Downstream)
-					session := sh.NewSession()
-					session.SetDir(tmpDir)
-					err = git.SyncRepoNamespace(session, cloneUrl, tmpDir, &r, dryrun)
-					if err != nil {
-						log.WithFields(log.Fields{"error": err}).Error("Failed to clone repo")
-					}
-				})
-
+				uPath, err := url.Parse(r.Upstream)
+				if err != nil {
+					log.WithFields(log.Fields{"error": err}).Fatal("Skipping, problem reading url")
+					return
+				}
+				uPathStrip := strings.TrimRight(uPath.EscapedPath(), ".git")
+				uPathStrip = strings.TrimLeft(uPathStrip, "/")
+				if r.Downstream == uPathStrip {
+					log.WithFields(log.Fields{"downstream": r.Downstream, "upstream": uPathStrip}).Warn("Upstream and downstream are the same, skipping this repository.")
+					return
+				}
+				cloneUrl := fmt.Sprintf("https://%s:%s@github.com/%s", ghUser, ghPass, r.Downstream)
+				err = git.SyncRepoNamespace(cloneUrl, &r, dryrun)
+				if err != nil {
+					log.WithFields(log.Fields{"error": err}).Error("Failed to clone repo")
+				}
 			}
-		limit.Wait()
+
 		}
 	},
 }
